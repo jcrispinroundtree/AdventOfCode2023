@@ -1,4 +1,4 @@
-input = File.readlines('input.txt').map(&:chomp)
+input = File.readlines('Day1-input.txt').map(&:chomp)
 total = 0
 digit_map = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
 digit_map_reversed = digit_map.map(&:reverse)
