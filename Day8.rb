@@ -1,3 +1,4 @@
+# PART 1
 input = File.readlines('Day8-input.txt').map(&:chomp)
 instructions = input.shift.split.to_s.tr('[]', '').tr('"', '')
 
@@ -31,3 +32,34 @@ step_arr.each do |step|
 end
 puts total
 
+# PART 2
+total2 = 0
+starters = []
+
+step_arr.each do |step|
+    if step.value[2] == "A"
+        starters << step
+    end
+end
+
+totals = []
+
+starters.each do |step|
+    total_temp = 0
+    while step.value[2] != "Z"
+        instructions.each_char do |char|
+            case char
+            when "L" then next_step = step.left 
+            when "R" then next_step = step.right
+            end
+            step = step_arr.find { |s| s.value == next_step }
+            total_temp += 1
+            if step.value[2] == "Z"
+                totals << total_temp
+                break
+            end
+        end
+    end
+end
+
+puts totals.reduce(:lcm)
