@@ -65,31 +65,33 @@ def traverse(point, direction, matrix)
 end
 
 def main
-  # input = File.readlines('Day10-input.txt')
-  # start, direction = find_start(input)
-  # point = start
-  # loop_count = 0
-  # loop do
-  #   point, direction = traverse(point, direction, input)
-  #   loop_count += 1
-  #   break if point == start && loop_count > 1
-  # end
-  # puts "Loop size: #{loop_count / 2}"
+  input = File.readlines('Day10-input.txt')
+  start, direction = find_start(input)
+  point = start
+  loop_count = 0
+  loop do
+    point, direction = traverse(point, direction, input)
+    loop_count += 1
+    break if point == start && loop_count > 1
+  end
+  puts "Loop size: #{loop_count / 2}"
   input = File.readlines('Day10-input.txt')
   ans_2 = part2(input)
   puts "Part 2 Answer: #{ans_2}"
-  # puts input
+
 end
 
 
 def part2(input)
   start, direction = find_start(input)
   point = start
+  loop_coords = []
 
   (0..).each do |i|
     break i if point == start && i > 0
     point, next_direction = traverse(point, direction, input)
-    if direction == "south" || next_direction == "north"
+    loop_coords << point[0..1]
+    if direction == "south" || next_direction == "north" || next_direction == "south" || direction == "north"
       input[point[0]][point[1]] = '!'
     else
       input[point[0]][point[1]] = '_'
@@ -97,21 +99,15 @@ def part2(input)
     direction = next_direction
   end
 
-  input.sum do |line|
-    subbed = line.gsub('_', '').gsub('!!', '')
-    puts subbed
-    inside = false
-    inside_count = 0
-    subbed.each_char do |c|
-      if c == '!'
-        inside = !inside
-      elsif inside
-        inside_count += 1
-      end
-    end
-    # raise "#{line.inspect} -> #{subbed.inspect} stays inside" if inside
-    inside_count
+  sum = 0
+  loop_coords.push(loop_coords[0])
+  loop_coords.each_cons(2) do |n1, n2|
+    x1, y1 = n1
+    x2, y2 = n2
+    sum += x1 * y2 - x2 * y1
   end
+  ans2 = (sum / 2).abs - (loop_coords.size / 2) + 1
+
 end
 
 main
