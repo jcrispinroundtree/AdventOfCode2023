@@ -19,5 +19,21 @@ rows_to_duplicate.reverse.each do |index|
   new_lines.insert(index, new_lines[index].clone)
 end
 
-new_text = new_lines.map { |line| line.join }.join("\n")
-puts new_text
+galaxy_coordinates = []
+new_lines.each_with_index do |row, row_index|
+  row.each_with_index do |char, col_index|
+    galaxy_coordinates << [col_index, row_index] if char == '#'
+  end
+end
+
+sum = 0
+while galaxy_coordinates.length > 1 do
+  g1 = galaxy_coordinates[0]
+  galaxy_coordinates.each do |g2|
+    sum += (g2[0]-g1[0]).abs + (g2[1]-g1[1]).abs
+  end
+  galaxy_coordinates.shift
+end
+
+puts sum
+    
