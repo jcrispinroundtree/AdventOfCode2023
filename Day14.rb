@@ -37,164 +37,124 @@ puts "Score: #{score}"
 
 
 # PART 2
-input = File.read("Day14-input.txt")
-grid = input.split("\n").map { |line| line.chars }
-
-def deep_copy_grid(grid)
-  grid.map(&:dup)
+def read_input(file_path)
+  File.read(file_path).split("\n").map(&:chars)
 end
 
-def tilt_grid(tilt_cache, grid, direction)
-  cache_key = "#{grid.map(&:join).join(":")}:#{direction}"
-  return tilt_cache[cache_key] if tilt_cache[cache_key]
-
-  new_grid = deep_copy_grid(grid)
-
+def tilt_grid(grid, direction)
   case direction
-  when 0 # North
-    move_north(new_grid)
-  when 1 # West
-    move_west(new_grid)
-  when 2 # South
-    move_south(new_grid)
-  when 3 # East
-    move_east(new_grid)
+  when :north
+    tilt_north(grid)
+  when :west
+    tilt_west(grid)
+  when :south
+    tilt_south(grid)
+  when :east
+    tilt_east(grid)
+  else
+    grid
   end
-
-  tilt_cache[cache_key] = new_grid
-  new_grid
 end
-
-def move_rocks(grid, direction)
+def tilt_north(grid)
   moved = false
-  new_grid = deep_copy_grid(grid)
-
-  case direction
-  when 0 # North
-    moved = true while move_north(new_grid)
-  when 1 # West
-    moved = true while move_west(new_grid)
-  when 2 # South
-    moved = true while move_south(new_grid)
-  when 3 # East
-    moved = true while move_east(new_grid)
-  end
-
-  [new_grid, moved]
-end
-
-def total_load(load_cache, grid)
-  cache_key = grid.map(&:join).join(":")
-  return load_cache[cache_key] if load_cache[cache_key]
-
-  load = 0
-  grid_size = grid.size
-  grid.each_with_index do |line, row|
-    line.each_with_index do |char, col|
-      load += grid_size - row if char == 'O'
+  (1...grid.length).each do |row|
+    (0...grid[row].length).each do |col|
+      if grid[row][col] == 'O' && grid[row - 1][col] == '.'
+        grid[row][col], grid[row - 1][col] = '.', 'O'
+        moved = true
+      end
     end
   end
+  grid  # Return the updated grid
+end
 
-  load_cache[cache_key] = load
+def tilt_west(grid)
+  moved = false
+  grid.each do |row|
+    (1...row.length).each do |col|
+      if row[col] == 'O' && row[col - 1] == '.'
+        row[col], row[col - 1] = '.', 'O'
+        moved = true
+      end
+    end
+  end
+  grid  # Return the updated grid
+end
+
+def tilt_south(grid)
+  moved = false
+  (0...(grid.length - 1)).to_a.reverse.each do |row|
+    (0...grid[row].length).each do |col|
+      if grid[row][col] == 'O' && grid[row + 1][col] == '.'
+        grid[row][col], grid[row + 1][col] = '.', 'O'
+        moved = true
+      end
+    end
+  end
+  grid  # Return the updated grid
+end
+
+def tilt_east(grid)
+  moved = false
+  grid.each do |row|
+    (0...(row.length - 1)).to_a.reverse.each do |col|
+      if row[col] == 'O' && row[col + 1] == '.'
+        row[col], row[col + 1] = '.', 'O'
+        moved = true
+      end
+    end
+  end
+  grid  # Return the updated grid
+end
+def one_cycle(grid)
+  [:north, :west, :south, :east].each do |direction|
+    grid = tilt_grid(grid, direction)
+    # Optional: Add logging here to check the grid state after each tilt
+  end
+  grid
+end
+
+def calculate_load(grid)
+  load = 0
+  grid.each_with_index do |row, y|
+    row.each_with_index do |cell, x|
+      load += 1 if cell == 'O'
+    end
+  end
   load
 end
 
-def move_north(grid)
-  moved = false
-  (1...grid.size).each do |row|
-    (0...grid[row].size).each do |col|
-      if grid[row][col] == 'O' && grid[row - 1][col] == '.'
-        grid[row - 1][col], grid[row][col] = grid[row][col], '.'
-        moved = true
-      end
+def find_cycle(grid, max_cycles)
+  seen = {}
+  cycles_checked = 0
+
+  while cycles_checked < max_cycles
+    grid = one_cycle(grid)
+    # Optional: Add logging here to check the grid state after each full cycle
+
+    grid_state = grid.map(&:join).join(":")
+    if seen[grid_state]
+      return [true, cycles_checked - seen[grid_state]]
     end
+
+    seen[grid_state] = cycles_checked
+    cycles_checked += 1
   end
-  moved
+
+  [false, 0]
 end
 
-def move_west(grid)
-  moved = false
-  grid.each do |row|
-    (1...row.size).each do |col|
-      if row[col] == 'O' && row[col - 1] == '.'
-        row[col - 1], row[col] = row[col], '.'
-        moved = true
-      end
-    end
-  end
-  moved
-end
-
-def move_south(grid)
-  moved = false
-  (0...(grid.size - 1)).to_a.reverse.each do |row|
-    (0...grid[row].size).each do |col|
-      if grid[row][col] == 'O' && grid[row + 1][col] == '.'
-        grid[row + 1][col], grid[row][col] = grid[row][col], '.'
-        moved = true
-      end
-    end
-  end
-  moved
-end
-
-def move_east(grid)
-  moved = false
-  grid.each do |row|
-    (0...(row.size - 1)).to_a.reverse.each do |col|
-      if row[col] == 'O' && row[col + 1] == '.'
-        row[col + 1], row[col] = row[col], '.'
-        moved = true
-      end
-    end
-  end
-  moved
-end
-
+# Main execution logic for Part 2
+input_file = "Day14-input.txt"
+grid = read_input(input_file)
 max_cycles_to_check = 1000
-tilt_cache = {}
-load_cache = {}
-cycle_detected = false
-cycle_length = 0
-cycles_checked = 0
-
-while cycles_checked < max_cycles_to_check
-  4.times do |i|
-    grid = tilt_grid(tilt_cache, grid, i)
-  end
-
-  weight = total_load(load_cache, grid)
-  state = grid.map(&:join).join("\n")
-
-  if tilt_cache[state]
-    if tilt_cache[state] == cycles_checked - 1
-      cycle_detected = true
-      cycle_length = cycles_checked - tilt_cache[state]
-      break
-    end
-  else
-    tilt_cache[state] = cycles_checked
-  end
-
-  cycles_checked += 1
-end
+cycle_detected, cycle_length = find_cycle(grid, max_cycles_to_check)
 
 if cycle_detected
-  puts "Cycle Detected: Yes, Length: #{cycle_length}"
   equivalent_cycles = 1_000_000_000 % cycle_length
-
-  grid = input.split("\n").map { |line| line.chars }
-  equivalent_cycles.times do
-    4.times do |i|
-      grid = tilt_grid(tilt_cache, grid, i)
-    end
-  end
-
-  load = total_load(load_cache, grid)
-  puts "Load on the north support beams after 1,000,000,000 cycles: #{load}"
+  equivalent_cycles.times { grid = one_cycle(grid) }
+  final_load = calculate_load(grid)
+  puts "Load after 1,000,000,000 cycles: #{final_load}"
 else
-  puts "Cycle Detected: No"
+  puts "No cycle detected within #{max_cycles_to_check} cycles."
 end
-
-
-
