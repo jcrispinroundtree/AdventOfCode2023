@@ -41,6 +41,7 @@ def read_input(file_path)
   File.readlines(file_path).map(&:chomp).map(&:chars)
 end
 
+
 def tilt_north(grid)
   (1...grid.length).to_a.reverse.each do |row|
     (0...grid[row].length).each do |col|
