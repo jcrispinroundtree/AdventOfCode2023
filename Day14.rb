@@ -37,94 +37,135 @@ puts "Score: #{score}"
 
 
 # PART 2
-def read_input(file_path)
-  File.readlines(file_path).map(&:chomp).map(&:chars)
+map = []
+
+height = 0
+width = 0
+target_number_of_spins = 1000000000
+
+def process_input(map)
+  input = File.read("Day14-input.txt").strip
+  input.lines.each do |line|
+    map.push(line.strip.split(''))
+  end
+  [map.length, map[0].length]
 end
 
+def spin(map, height, width)
+  send_rocks_to_north(map, height, width)
+  send_rocks_to_west(map, height, width)
+  send_rocks_to_south(map, height, width)
+  send_rocks_to_east(map, height, width)
+end
 
-def tilt_north(grid)
-  (1...grid.length).to_a.reverse.each do |row|
-    (0...grid[row].length).each do |col|
-      next unless grid[row][col] == 'O'
-      new_row = row - 1
-      while new_row >= 0 && grid[new_row][col] == '.'
-        new_row -= 1
-      end
-      next if new_row == row - 1
-      grid[row][col], grid[new_row + 1][col] = '.', 'O'
+def send_rocks_to_north(map, height, width)
+  1.upto(height - 1) do |row|
+    0.upto(width - 1) do |col|
+      send_rock_to_north(map, row, col) if map[row][col] == 'O'
     end
   end
-  grid
 end
 
-def tilt_west(grid)
-  grid.each do |row|
-    (1...row.length).to_a.reverse.each do |col|
-      next unless row[col] == 'O'
-      new_col = col - 1
-      while new_col >= 0 && row[new_col] == '.'
-        new_col -= 1
-      end
-      next if new_col == col - 1
-      row[col], row[new_col + 1] = '.', 'O'
+def send_rock_to_north(map, row, col)
+  while row > 0
+    break unless map[row - 1][col] == '.'
+    map[row][col] = '.'
+    map[row - 1][col] = 'O'
+    row -= 1
+  end
+end
+
+def send_rocks_to_south(map, height, width)
+  (height - 2).downto(0) do |row|
+    0.upto(width - 1) do |col|
+      send_rock_to_south(map, row, col, height) if map[row][col] == 'O'
     end
   end
-  grid
 end
 
-def tilt_south(grid)
-  (0...(grid.length - 1)).each do |row|
-    (0...grid[row].length).each do |col|
-      next unless grid[row][col] == 'O'
-      new_row = row + 1
-      while new_row < grid.length && grid[new_row][col] == '.'
-        new_row += 1
-      end
-      next if new_row == row + 1
-      grid[row][col], grid[new_row - 1][col] = '.', 'O'
+def send_rock_to_south(map, row, col, height)
+  while row < height - 1
+    break unless map[row + 1][col] == '.'
+    map[row][col] = '.'
+    map[row + 1][col] = 'O'
+    row += 1
+  end
+end
+
+def send_rocks_to_west(map, height, width)
+  0.upto(height - 1) do |row|
+    1.upto(width - 1) do |col|
+      send_rock_to_west(map, row, col) if map[row][col] == 'O'
     end
   end
-  grid
 end
 
-def tilt_east(grid)
-  grid.each do |row|
-    (0...(row.length - 1)).each do |col|
-      next unless row[col] == 'O'
-      new_col = col + 1
-      while new_col < row.length && row[new_col] == '.'
-        new_col += 1
-      end
-      next if new_col == col + 1
-      row[col], row[new_col - 1] = '.', 'O'
+def send_rock_to_west(map, row, col)
+  while col > 0
+    break unless map[row][col - 1] == '.'
+    map[row][col] = '.'
+    map[row][col - 1] = 'O'
+    col -= 1
+  end
+end
+
+def send_rocks_to_east(map, height, width)
+  0.upto(height - 1) do |row|
+    (width - 2).downto(0) do |col|
+      send_rock_to_east(map, row, col, width) if map[row][col] == 'O'
     end
   end
-  grid
 end
 
-def one_cycle(grid)
-  grid = tilt_north(grid)
-  grid = tilt_west(grid)
-  grid = tilt_south(grid)
-  grid = tilt_east(grid)
-  grid
-end
-
-def print_grid(grid)
-  grid.each { |row| puts row.join }
-  puts "\n"
-end
-
-def simulate_and_print_cycles(grid, num_cycles)
-  (1..num_cycles).each do |cycle|
-    grid = one_cycle(grid)
-    puts "After #{cycle} cycles:"
-    print_grid(grid)
+def send_rock_to_east(map, row, col, width)
+  while col < width - 1
+    break unless map[row][col + 1] == '.'
+    map[row][col] = '.'
+    map[row][col + 1] = 'O'
+    col += 1
   end
 end
 
-# Main Execution
-input_file = "Day14-input.txt"
-grid = read_input(input_file)
+def count_rocks(map, height)
+  sum = 0
+  0.upto(height - 1) do |n|
+    factor = height - n
+    sum += factor * count_rocks_row(map, n)
+  end
+  sum
+end
 
-simulate_and_print_cycles(grid, 300)
+def count_rocks_row(map, n)
+  map[n].count('O')
+end
+
+def map_to_string(map)
+  map.map { |line| line.join('') }.join(';')
+end
+
+# Main execution
+map = []
+height, width = process_input(map)
+
+memory = []
+counts = []
+
+index_of_ancestor = -1
+loop do
+  spin(map, height, width)
+  s = map_to_string(map)
+  n = count_rocks(map, height)
+
+  index_of_ancestor = memory.index(s)
+  break unless index_of_ancestor.nil?
+
+  memory.push(s)
+  counts.push(n)
+end
+
+initial_spins = index_of_ancestor
+spins_per_loop = memory.length - initial_spins
+remaining_spins = (target_number_of_spins - initial_spins) % spins_per_loop
+index = initial_spins + remaining_spins - 1
+
+puts "The answer is #{counts[index]}"
