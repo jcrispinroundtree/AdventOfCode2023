@@ -15,15 +15,45 @@ end
 puts "Total: #{total}"
 
 # PART 2
+def hash_algorithm(str)
+  current_value = 0
+  str.each_char do |char|
+    current_value += char.ord
+    current_value *= 17
+    current_value %= 256
+  end
+  current_value
+end
 
+boxes = Array.new(256) { [] }
 
-# make empty array
-# for each item in input separated by a , 
-#   run hash algorithm on item to determine which box it is talking about
+input = File.read("Day15-input.txt")
+input.split(',').each do |item|
+  hash_value = hash_algorithm(item.gsub(/[-=].*/, '')) 
 
-#   if item contains = and the first characters found in the item before the = is not in the array, 
-#     add item to the array replacing the = with a blank space,
-#   otherwise if the first characters found in the item before the = is in the array 
-#     then update the value after the whitespace that is in the array to be the value after the whitespace
+  if item.include?('=')
+    key, value = item.split('=')
+    existing_item = boxes[hash_value].find { |i| i.start_with?("#{key} ") }
+    if existing_item
+      existing_item.sub!(/\d+$/, value)
+    else
+      boxes[hash_value] << "#{key} #{value}"
+    end
+  elsif item.include?('-')
+    key = item.split('-').first
+    boxes[hash_value].reject! { |i| i.start_with?("#{key} ") }
+  end
+end
 
-#  if item contains - then find the item containing the characters found before the - and delete that item from the array
+total = 0
+
+boxes.each_with_index do |box, index|
+  box.each_with_index do |item, slot|
+    key, value = item.split
+    total += (index+1) * (slot+1) * value.to_i
+    puts "#{slot+1} #{index} #{key} #{value} = #{(index+1) * (slot+1) * value.to_i}"
+  end
+end
+
+puts "Boxes: #{boxes.inspect}"
+puts total
