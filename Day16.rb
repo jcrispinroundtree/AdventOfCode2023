@@ -61,3 +61,6 @@ def simulate_light(matrix)
   matrix = input.split("\n").map { |line| line.chars }
   
   puts simulate_light(matrix)
+ 
+
+  
