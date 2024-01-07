@@ -30,6 +30,8 @@
 def simulate_light(matrix)
     directions = [[1, 0], [0, -1], [-1, 0], [0, 1]] # right, up, left, down
     energise_count = Array.new(matrix.size) { Array.new(matrix[0].size, false) }
+    puts matrix.size
+    puts matrix[0].size
     x, y = 0, 0
     direction = 0 # Start moving right
   
@@ -63,4 +65,3 @@ def simulate_light(matrix)
   puts simulate_light(matrix)
  
 
-  
