@@ -99,22 +99,18 @@ def reconstruct_path(came_from, current)
 end
 
 def mark_path_on_grid(grid, path)
-    # Create a display grid with the same dimensions as the original grid
     display_grid = Array.new(grid.length) { Array.new(grid[0].length) }
   
-    # Fill the display grid with the original grid's values
     grid.each_with_index do |row, x|
       row.each_with_index do |cost, y|
         display_grid[x][y] = cost.to_s
       end
     end
   
-    # Mark the path on the display grid
     path.each do |node|
       display_grid[node.x][node.y] = '*' unless node == path.first || node == path.last
     end
-  
-    # Mark the start and goal positions
+
     display_grid[path.first.x][path.first.y] = 'S'
     display_grid[path.last.x][path.last.y] = 'G'
   
