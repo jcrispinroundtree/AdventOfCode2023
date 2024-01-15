@@ -6,139 +6,72 @@
 
 require 'set'
 
-class Node
-  attr_accessor :x, :y, :cost, :parent, :direction, :direction_count
+# Reading input from a file
+input = File.readlines("day17-input.txt").map { |line| line.chomp.split('').map(&:to_i) }
+rows = input.length
+columns = input[0].length
 
-  def initialize(x, y, cost, parent = nil, direction = nil, direction_count = 0)
-    @x = x
-    @y = y
-    @cost = cost.to_i
-    @parent = parent
-    @direction = direction
-    @direction_count = direction_count
-  end
+# Creating the graph
+graph = {}
+$result = Float::INFINITY
+$final_path = []
 
-  def ==(other)
-    x == other.x && y == other.y
-  end
-
-  def eql?(other)
-    self == other
-  end
-
-  def hash
-    [x, y].hash
-  end
-end
-
-
-def parse_input(file)
-  grid = []
-  File.readlines(file).each do |line|
-    grid << line.chomp.chars.map(&:to_i)
-  end
-  grid
-end
-
-def heuristic(node, goal)
-  (node.x - goal.x).abs + (node.y - goal.y).abs
-end
-
-def neighbors(node, grid)
-    directions = [[0, 1, 'E'], [1, 0, 'S'], [-1, 0, 'N'], [0, -1, 'W']]
+(0...rows).each do |y|
+  (0...columns).each do |x|
+    vertical_key = "vertical(#{x},#{y})"
+    horizontal_key = "horizontal(#{x},#{y})"
     
-    directions.map do |dx, dy, dir|
-      new_x, new_y = node.x + dx, node.y + dy
-      if new_x.between?(0, grid.length - 1) && new_y.between?(0, grid[0].length - 1)
-        new_direction_count = node.direction == dir ? node.direction_count + 1 : 1
-        if new_direction_count <= 3
-          Node.new(new_x, new_y, grid[new_x][new_y], node, dir, new_direction_count)
-        end
+    graph[vertical_key] = { heat: Float::INFINITY, neighbors: {} }
+    graph[horizontal_key] = { heat: Float::INFINITY, neighbors: {} }
+
+    (1..3).each do |i|
+      if y + i >= 0 && y + i < rows
+        graph[vertical_key][:neighbors]["horizontal(#{x},#{y + i})"] = (1..i).sum { |j| input[y + j][x] }
       end
-    end.compact
-end
-
-def a_star(start, goal, grid)
-  open_set = Set.new
-  open_set.add(start)
-  came_from = {}
-  g_score = Hash.new(Float::INFINITY)
-  g_score[start] = 0
-  f_score = Hash.new(Float::INFINITY)
-  f_score[start] = heuristic(start, goal)
-
-  until open_set.empty?
-    current = open_set.min_by { |node| f_score[node] }
-
-    return reconstruct_path(came_from, current) if current == goal
-
-    open_set.delete(current)
-    neighbors(current, grid).each do |neighbor|
-      next if current.direction == neighbor.direction && current.direction_count >= 3
-
-      tentative_g_score = g_score[current] + neighbor.cost.to_i
-      if tentative_g_score < g_score[neighbor]
-        came_from[neighbor] = current
-        g_score[neighbor] = tentative_g_score
-        f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-        open_set.add(neighbor) unless open_set.include?(neighbor)
+      if y - i >= 0 && y - i < rows
+        graph[vertical_key][:neighbors]["horizontal(#{x},#{y - i})"] = (1..i).sum { |j| input[y - j][x] }
+      end
+      if x + i >= 0 && x + i < columns
+        graph[horizontal_key][:neighbors]["vertical(#{x + i},#{y})"] = (1..i).sum { |j| input[y][x + j] }
+      end
+      if x - i >= 0 && x - i < columns
+        graph[horizontal_key][:neighbors]["vertical(#{x - i},#{y})"] = (1..i).sum { |j| input[y][x - j] }
       end
     end
   end
-
-  return nil
 end
+starting_neighbors = graph["horizontal(0,0)"][:neighbors].merge(graph["vertical(0,0)"][:neighbors])
 
-def reconstruct_path(came_from, current)
-  total_path = [current]
-  while came_from.include?(current)
-    current = came_from[current]
-    total_path.prepend(current)
+def walk(neighbor, heat, graph, rows, columns, path)
+  return if heat >= [graph[neighbor][:heat], $result].min
+
+  if neighbor.split("l")[1] == "(#{columns - 1},#{rows - 1})"
+    $result = heat
+    $final_path.replace(path + [neighbor.split(/[()]/)[1].split(',').map(&:to_i)])  # Storing the final path
+    return
   end
-  total_path
+
+  graph[neighbor][:heat] = heat
+  graph[neighbor][:neighbors].each do |key, value|
+    walk(key, heat + value, graph, rows, columns, path + [neighbor.split(/[()]/)[1].split(',').map(&:to_i)])
+  end
 end
 
-def mark_path_on_grid(grid, path)
-    display_grid = Array.new(grid.length) { Array.new(grid[0].length) }
-  
-    grid.each_with_index do |row, x|
-      row.each_with_index do |cost, y|
-        display_grid[x][y] = cost.to_s
-      end
-    end
-  
-    path.each do |node|
-      display_grid[node.x][node.y] = '*' unless node == path.first || node == path.last
-    end
-
-    display_grid[path.first.x][path.first.y] = 'S'
-    display_grid[path.last.x][path.last.y] = 'G'
-  
-    display_grid
-end
-  
-def print_grid(grid)
-    grid.each do |row|
-      puts row.join(' ')
-    end
+starting_neighbors.each do |neighbor, heat|
+  walk(neighbor, heat, graph, rows, columns, [])
 end
 
-def calculate_total_cost(path)
-  path.sum(&:cost)
+# Creating a matrix for the path
+matrix = Array.new(rows) { Array.new(columns, '.') }  # '.' represents unvisited cells
+
+# Marking the start and end points
+matrix[0][0] = 'S'  # Marking the start
+matrix[rows - 1][columns - 1] = 'G'  # Marking the end
+
+# Marking the path in the matrix
+$final_path.each do |y, x|  # Ensure that the coordinates are used correctly
+  matrix[y][x] = '*' unless [y, x] == [0, 0] || [y, x] == [rows - 1, columns - 1]
 end
 
-grid = parse_input("Day17-input.txt")
-start = Node.new(0, 0, grid[0][0], nil, nil, 0)
-goal = Node.new(grid.length - 1, grid[0].length - 1, grid[-1][-1], nil, nil, 0)
-
-path = a_star(start, goal, grid)
-
-if path
-  display_grid = mark_path_on_grid(grid, path)
-  puts "Path found:"
-  print_grid(display_grid)
-  total_cost = calculate_total_cost(path)
-  puts "Total cost of the path: #{total_cost}"
-else
-  puts "No path found"
-end
+# Printing the matrix
+matrix.each { |row| puts row.join(' ') }
